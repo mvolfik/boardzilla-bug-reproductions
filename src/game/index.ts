@@ -33,7 +33,7 @@ export class Token extends Piece {
 export default createGame(IssueReproPlayer, IssueReproBoard, game => {
 
   const { board, action } = game;
-  const { playerActions, loop, eachPlayer } = game.flowCommands;
+  const { playerActions, loop, eachPlayer, everyPlayer } = game.flowCommands;
 
   /**
    * Register all custom pieces and spaces
@@ -46,12 +46,14 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
   for (const player of game.players) {
     const mat = board.create(Space, 'mat', { player });
     mat.onEnter(Token, t => t.showToAll());
+
+    const pool = board.create(Space, 'pool', { player });
+    pool.onEnter(Token, t => t.hideFromAll());
+
+    pool.createMany(game.setting('tokens') - 1, Token, 'blue', { color: 'blue' });
+    pool.create(Token, 'red', { color: 'red' });
   }
 
-  board.create(Space, 'pool');
-  $.pool.onEnter(Token, t => t.hideFromAll());
-  $.pool.createMany(game.setting('tokens') - 1, Token, 'blue', { color: 'blue' });
-  $.pool.create(Token, 'red', { color: 'red' });
 
   /**
    * Define all possible game actions.
@@ -60,7 +62,7 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
     take: player => action({
       prompt: 'Choose a token',
     }).chooseOnBoard(
-      'token', $.pool.all(Token),
+      'token', player.my("pool")!.all(Token),
     ).move(
       'token', player.my('mat')!
     ).message(
@@ -80,7 +82,7 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
   game.defineFlow(
     () => $.pool.shuffle(),
     loop(
-      eachPlayer({
+      everyPlayer({
         name: 'player',
         do: playerActions({
           actions: ['take']
