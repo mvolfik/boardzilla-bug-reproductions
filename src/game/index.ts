@@ -80,7 +80,11 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
    * phases and turns.
    */
   game.defineFlow(
-    () => $.pool.shuffle(),
+    () => {
+      for (const pool of board.all("pool")) {
+        pool.shuffle();
+      }
+    },
     loop(
       everyPlayer({
         name: 'player',
