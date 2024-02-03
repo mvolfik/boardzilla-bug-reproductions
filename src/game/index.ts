@@ -66,6 +66,7 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
     ).message(
       `{{player}} drew a {{token}} token.`
     ).do(({ token }) => {
+      console.log("this is printed", window.showDebug);
       if (token.color === 'red') {
         game.message("{{player}} wins!", { player });
         game.finish(player);
@@ -78,7 +79,11 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
    * phases and turns.
    */
   game.defineFlow(
-    () => $.pool.shuffle(),
+    () => {
+      console.log("this is never printed");
+      console.count("the code does run though");
+      $.pool.shuffle();
+    },
     loop(
       eachPlayer({
         name: 'player',
