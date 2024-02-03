@@ -3,6 +3,7 @@ import {
   createBoardClasses,
   Player,
   Board,
+  Do,
 } from '@boardzilla/core';
 
 export class IssueReproPlayer extends Player<IssueReproPlayer, IssueReproBoard> {
@@ -84,7 +85,7 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
         .message('{{player}} discarded a {{token}}.'),
     endTurn: (player) =>
       action({ prompt: 'End turn' }).do(() => {
-        game.message('{{player}} ended their turn.', { player: player.name });
+        return Do.break();
       }),
   });
 
@@ -100,12 +101,18 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
       () => {
         game.message("Starting a new round");
       },
+      // behavior that I would expect:
+      // the loop() will allow player to take or discard as many tokens as they want,
+      // and when they click end turn, the loop() will end, and next player (from the eachPlayer() loop)
+      // will take their turn, eventually, if this was the last player, a new round will start
       eachPlayer({
         name: 'player',
-        do: playerActions({
+        do: loop(
+          playerActions({
             actions: ['take', 'discard', 'endTurn'],
             prompt: 'Take or discard token',
-        })
+          })
+        )
       })
     )
   );
