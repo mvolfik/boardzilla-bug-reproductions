@@ -19,15 +19,22 @@ class IssueReproBoard extends Board<IssueReproPlayer, IssueReproBoard> {
   phase: number = 1;
 }
 
-const { Space, Piece } = createBoardClasses<IssueReproPlayer, IssueReproBoard>();
+const { Space, Piece, Die } = createBoardClasses<IssueReproPlayer, IssueReproBoard>();
 
 export { Space };
+
+const COLORS = ['red', 'blue', 'green'] as const;
+type Color = typeof COLORS[number];
 
 /**
  * Define your game's custom pieces and spaces.
  */
 export class Token extends Piece {
-  color: 'red' | 'blue';
+  color: Color;
+
+  toString(): string {
+    return `${this.color} token`;
+  }
 }
 
 export default createGame(IssueReproPlayer, IssueReproBoard, game => {
@@ -40,37 +47,41 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
    */
   board.registerClasses(Token);
 
+  board.create(Space, "filler");
+
   /**
    * Create your game board's layout and all included pieces.
    */
   for (const player of game.players) {
-    const mat = board.create(Space, 'mat', { player });
-    mat.onEnter(Token, t => t.showToAll());
+    const hand = board.create(Space, 'hand', { player });
+    hand.onEnter(Token, t => t.showOnlyTo(player));
   }
 
   board.create(Space, 'pool');
-  $.pool.onEnter(Token, t => t.hideFromAll());
-  $.pool.createMany(game.setting('tokens') - 1, Token, 'blue', { color: 'blue' });
-  $.pool.create(Token, 'red', { color: 'red' });
+  $.pool.onEnter(Token, t => t.showToAll());
+
+  for (const color of COLORS) {
+    $.pool.createMany(20, Token, color, { color });
+  }
 
   /**
    * Define all possible game actions.
    */
   game.defineActions({
-    take: player => action({
-      prompt: 'Choose a token',
-    }).chooseOnBoard(
-      'token', $.pool.all(Token),
-    ).move(
-      'token', player.my('mat')!
-    ).message(
-      `{{player}} drew a {{token}} token.`
-    ).do(({ token }) => {
-      if (token.color === 'red') {
-        game.message("{{player}} wins!", { player });
-        game.finish(player);
-      }
-    }),
+    take: (player) =>
+      action({
+        prompt: 'Take a token',
+      })
+        .chooseOnBoard('token', $.pool.all(Token), { confirm: 'Yes', prompt: 'Take this token?' })
+        .move('token', player.my('hand')!)
+        .message('{{player}} took a {{token}}.'),
+    discard: (player) =>
+      action({
+        prompt: 'Discard a token',
+      })
+        .chooseOnBoard('token', player.my('hand')!.all(Token), { confirm: 'Yes', prompt: 'Discard this token?' })
+        .move('token', $.pool)
+        .message('{{player}} discarded a {{token}}.'),
   });
 
   /**
@@ -78,13 +89,18 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
    * phases and turns.
    */
   game.defineFlow(
-    () => $.pool.shuffle(),
+    () => {
+      game.message('The game has started!');
+    },
     loop(
       eachPlayer({
         name: 'player',
-        do: playerActions({
-          actions: ['take']
-        }),
+        do: loop(
+          playerActions({
+            actions: ['take', 'discard'],
+            prompt: "Take or discard token",
+          })
+        ),
       })
     )
   );

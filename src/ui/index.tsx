@@ -16,9 +16,9 @@ render(setup, {
 
     board.all(Token).appearance({
       aspectRatio: 1,
-      render: () => (
+      render: (t) => (
         <div className="flipper">
-          <div className="front"></div>
+          <div className="front">{t._t.id}</div>
           <div className="back"></div>
         </div>
       )
