@@ -82,6 +82,10 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
         .chooseOnBoard('token', player.my('hand')!.all(Token), { confirm: 'Yes', prompt: 'Discard this token?' })
         .move('token', $.pool)
         .message('{{player}} discarded a {{token}}.'),
+    endTurn: (player) =>
+      action({ prompt: 'End turn' }).do(() => {
+        game.message('{{player}} ended their turn.', { player: player.name });
+      }),
   });
 
   /**
@@ -93,14 +97,15 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
       game.message('The game has started!');
     },
     loop(
+      () => {
+        game.message("Starting a new round");
+      },
       eachPlayer({
         name: 'player',
-        do: loop(
-          playerActions({
-            actions: ['take', 'discard'],
-            prompt: "Take or discard token",
-          })
-        ),
+        do: playerActions({
+            actions: ['take', 'discard', 'endTurn'],
+            prompt: 'Take or discard token',
+        })
       })
     )
   );
