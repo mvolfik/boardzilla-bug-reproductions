@@ -78,7 +78,10 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
    * phases and turns.
    */
   game.defineFlow(
-    () => $.pool.shuffle(),
+    () => {
+      $.pool.shuffle();
+      game.message('Game has started!');
+    },
     loop(
       eachPlayer({
         name: 'player',
