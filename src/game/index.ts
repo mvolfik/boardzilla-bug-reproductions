@@ -3,6 +3,7 @@ import {
   createBoardClasses,
   Player,
   Board,
+  Do,
 } from '@boardzilla/core';
 
 export class IssueReproPlayer extends Player<IssueReproPlayer, IssueReproBoard> {
@@ -57,20 +58,14 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
    * Define all possible game actions.
    */
   game.defineActions({
-    take: player => action({
-      prompt: 'Choose a token',
-    }).chooseOnBoard(
-      'token', $.pool.all(Token),
-    ).move(
-      'token', player.my('mat')!
-    ).message(
-      `{{player}} drew a {{token}} token.`
-    ).do(({ token }) => {
-      if (token.color === 'red') {
-        game.message("{{player}} wins!", { player });
-        game.finish(player);
-      }
-    }),
+    pass: (player) =>
+      action({
+        prompt: 'Pass the turn',
+      })
+      // .chooseNumber("num", { min: 1, max: 10 })
+      .do(() => {
+        game.message('{{player}} passed.', { player });
+      }),
   });
 
   /**
@@ -78,14 +73,16 @@ export default createGame(IssueReproPlayer, IssueReproBoard, game => {
    * phases and turns.
    */
   game.defineFlow(
-    () => $.pool.shuffle(),
-    loop(
-      eachPlayer({
-        name: 'player',
-        do: playerActions({
-          actions: ['take']
-        }),
-      })
-    )
+    () => {
+      $.pool.shuffle();
+      game.message('Game has started!');
+    },
+    eachPlayer({
+      name: "player",
+      do: playerActions({
+        actions: ['pass'],
+        skipIf: "never"
+      }),
+    })
   );
 });
